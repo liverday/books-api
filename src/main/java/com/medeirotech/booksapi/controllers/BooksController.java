@@ -3,9 +3,11 @@ package com.medeirotech.booksapi.controllers;
 import com.medeirotech.booksapi.models.Author;
 import com.medeirotech.booksapi.models.Book;
 import com.medeirotech.booksapi.models.CreateBookRequest;
+import com.medeirotech.booksapi.models.Library;
 import com.medeirotech.booksapi.models.UpdateBookRequest;
 import com.medeirotech.booksapi.repositories.AuthorRepository;
 import com.medeirotech.booksapi.repositories.BooksRepository;
+import com.medeirotech.booksapi.repositories.LibraryRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.swing.text.html.Option;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -28,11 +29,14 @@ public class BooksController {
     private final List<Book> books = new ArrayList<>();
     private final BooksRepository booksRepository;
     private final AuthorRepository authorRepository;
+    private final LibraryRepository libraryRepository;
 
     public BooksController(final BooksRepository booksRepository,
-                           final AuthorRepository authorRepository) {
+                           final AuthorRepository authorRepository,
+                           final LibraryRepository libraryRepository) {
         this.booksRepository = booksRepository;
         this.authorRepository = authorRepository;
+        this.libraryRepository = libraryRepository;
     }
 
     @GetMapping
@@ -61,12 +65,19 @@ public class BooksController {
             return ResponseEntity.badRequest().body("Author not found");
         }
 
+        List<Library> libraries = libraryRepository.findAllById(request.getLibrariesIds());
+
         Book book = new Book(
                 null,
                 request.getTitle(),
                 request.getDescription(),
-                existingAuthor.get()
+                existingAuthor.get(),
+                libraries
         );
+
+        libraries.forEach(library -> {
+            library.addBook(book);
+        });
 
         return ResponseEntity.ok(booksRepository.save(book));
     }
